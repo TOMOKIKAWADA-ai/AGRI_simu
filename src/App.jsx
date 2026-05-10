@@ -17,7 +17,7 @@ import {
   getStageById,
   runAgriSurviveSelfCheck,
 } from './gameLogic.js';
-import { ITEM_VISUALS } from './uiAssets.js';
+import { ITEM_VISUALS, STAGE_VISUALS } from './uiAssets.js';
 
 const FORECAST_PANEL_HORIZON = 4;
 const DEFAULT_STAGE = STAGES[0];
@@ -40,6 +40,7 @@ export default function App() {
   const forecast = getForecast(stage, game.turn, FORECAST_PANEL_HORIZON);
   const currentPeriod = getCurrentPeriodLabel(stage, game.turn);
   const trialPlots = comparisonRows.filter((plot) => plot.role === 'trial');
+  const controlRow = comparisonRows.find((plot) => plot.role === 'control') || comparisonRows[0] || null;
   const activeTreatment = Array.isArray(selectedPlot?.treatments) ? selectedPlot.treatments[0] || null : null;
   const setupStage = getStageById(setupSelection.stageId);
   const setupItem = getItem(setupSelection.itemKey) || getPrimaryItem(setupStage);
@@ -53,6 +54,7 @@ export default function App() {
   const nextStage = currentStageIndex >= 0 ? STAGES[currentStageIndex + 1] || null : null;
   const currentItemVisual = ITEM_VISUALS[currentItem?.key];
   const setupItemVisual = ITEM_VISUALS[setupItem?.key];
+  const stageVisual = STAGE_VISUALS[stage.id];
 
   const selfCheck = useMemo(() => {
     try {
@@ -169,7 +171,7 @@ export default function App() {
 
             <div className="metric-rack">
               <MetricTile icon="投" label={game.finished ? '投入回数' : '投入可能数'} value={game.finished ? `${usedCount} / ${game.maxUses}` : `${game.remainingUses} / ${game.maxUses}`} />
-              <MetricTile icon="刻" label={game.finished ? '最終ターン' : '現在ターン'} value={`${game.turn} / ${game.maxTurns}`} />
+              <MetricTile icon="週" label={game.finished ? '最終週' : '現在週'} value={`${game.turn}週目 / ${game.maxTurns}週`} />
             </div>
           </header>
 
@@ -201,7 +203,7 @@ export default function App() {
               <div className="panel-head">
                 <div>
                   <div className="panel-kicker">選択中の区画</div>
-                  <h2>{selectedPlot?.name || '試験区A'}</h2>
+                  <h2>{selectedPlot?.name || '試験区'}</h2>
                   <p>{selectedPlot?.role === 'control' ? '無処理区' : '試験区'}</p>
                 </div>
                 <span className={`visual-chip ${selectedPlot?.visualState || 'steady'}`}>{visualStateLabel(selectedPlot?.visualState)}</span>
@@ -236,7 +238,7 @@ export default function App() {
                 )}
                 <div>
                   <strong>{currentItem?.name || '資材未設定'}</strong>
-                  <span>{currentItem?.delay || 0}ターン後に発効 / {currentItem?.duration || 0}ターン継続</span>
+                  <span>{currentItem?.delay || 0}週間後に発効 / {currentItem?.duration || 0}週間継続</span>
                 </div>
               </div>
 
@@ -252,7 +254,7 @@ export default function App() {
                     disabled={!canTreat || plot.treatmentUsed}
                   >
                     <span>{plot.name}に投入</span>
-                    <small>{plot.treatmentUsed ? '投入済み' : 'このターンで使用'}</small>
+                    <small>{plot.treatmentUsed ? '投入済み' : '今週使用'}</small>
                   </button>
                 ))}
               </div>
@@ -268,8 +270,8 @@ export default function App() {
 
               <button type="button" className="advance-button" onClick={handleAdvanceTurn} disabled={game.finished}>
                 <span className="advance-copy">
-                  <strong>{game.finished ? '決算表示中' : 'ターンを進める'}</strong>
-                  <small>{game.turnActionUsed ? 'このターンの投入は完了' : '投入しない場合はそのまま進行'}</small>
+                  <strong>{game.finished ? '決算表示中' : '1週間進める'}</strong>
+                  <small>{game.turnActionUsed ? '今週の投入は完了' : '投入しない場合は次週へ進行'}</small>
                 </span>
                 <span className="advance-arrow" aria-hidden="true">
                   »
@@ -383,9 +385,11 @@ export default function App() {
           <ResultOverlay
             stage={stage}
             settlement={settlement}
+            controlRow={controlRow}
             bestTrialRow={bestTrialRow}
             currentItem={currentItem}
             currentItemVisual={currentItemVisual}
+            stageVisual={stageVisual}
             usedCount={usedCount}
             maxUses={game.maxUses}
             hasNextStage={Boolean(nextStage)}
@@ -417,7 +421,7 @@ function ForecastCard({ entry }) {
   return (
     <article className={`forecast-card weather-${entry.forecast}`}>
       <div className="forecast-card-top">
-        <span className="forecast-turn">T{entry.turn}</span>
+        <span className="forecast-turn">第{entry.turn}週</span>
         <span className="forecast-period">{entry.periodLabel}</span>
       </div>
       <strong>{getEventLabel(entry.forecast)}</strong>
@@ -445,8 +449,8 @@ function EffectInline({ plot, treatment, primaryItem, forecast }) {
     endIndex = Math.min(points.length - 1, startOffset + Math.max(0, remaining - 1));
     status =
       treatment.state === 'active'
-        ? `有効 ${Math.max(0, treatment.remaining || 0)}T`
-        : `${Math.max(0, treatment.pending || 0)}T後に発効`;
+        ? `有効 ${Math.max(0, treatment.remaining || 0)}週`
+        : `${Math.max(0, treatment.pending || 0)}週後に発効`;
   }
 
   const left = startIndex >= 0 ? `${(startIndex / maxIndex) * 100}%` : '0%';
@@ -513,9 +517,11 @@ function DeltaPill({ label, value }) {
 function ResultOverlay({
   stage,
   settlement,
+  controlRow,
   bestTrialRow,
   currentItem,
   currentItemVisual,
+  stageVisual,
   usedCount,
   maxUses,
   hasNextStage,
@@ -527,6 +533,13 @@ function ResultOverlay({
   const clear = isStageClear(settlement);
   const achievement = getResultAchievement(stage, bestTrialRow, settlement);
   const insight = getResultInsight(stage, settlement, currentItem);
+  const cropCloseupLabel = stage.crop === 'orchard' ? '花芽の状態' : '稲の状態';
+  const comparisonMetrics = [
+    { key: 'quality', label: '品質', accent: 'quality', delta: settlement?.qualityGain || 0 },
+    { key: 'yield', label: '収量', accent: 'yield', delta: settlement?.yieldGain || 0 },
+    { key: 'stamina', label: '体力', accent: 'stamina', delta: (bestTrialRow?.stamina || 0) - (controlRow?.stamina || 0) },
+    { key: 'growth', label: '生育', accent: 'growth', delta: settlement?.growthGain || 0 },
+  ];
 
   return (
     <div className="result-overlay">
@@ -544,31 +557,45 @@ function ResultOverlay({
           </div>
         </div>
 
+        <div className="result-focus-grid">
+          <div className="result-crop-closeup">
+            {stageVisual ? <img src={stageVisual} alt={`${stage.shortName}の作物アップ`} /> : null}
+            <div className="result-crop-caption">
+              <span>{cropCloseupLabel}</span>
+              <strong>{bestTrialRow?.visualState ? visualStateLabel(bestTrialRow.visualState) : '比較中'}</strong>
+            </div>
+          </div>
+
+          <div className="result-comparison">
+            <div className="result-comparison-head">
+              <span>比較結果</span>
+              <strong>無処理区との差 {formatDelta(settlement?.improvementRate || 0)}%</strong>
+            </div>
+            <div className="result-comparison-grid">
+              <ResultComparisonColumn title={settlement?.controlName || '無処理区'} row={controlRow} metrics={comparisonMetrics} />
+              <div className="result-difference-column">
+                <span>差</span>
+                {comparisonMetrics.map((metric) => (
+                  <strong key={metric.key} className={metric.delta >= 0 ? 'positive' : 'negative'}>
+                    {formatDelta(metric.delta)}
+                  </strong>
+                ))}
+              </div>
+              <ResultComparisonColumn title={settlement?.bestPlotName || '試験区'} row={bestTrialRow} metrics={comparisonMetrics} highlight />
+            </div>
+          </div>
+        </div>
+
         <div className="result-metrics">
-          <ResultMetric label="品質" value={bestTrialRow?.quality || 0} accent="quality" />
-          <ResultMetric label="収量" value={bestTrialRow?.yield || 0} accent="yield" />
-          <ResultMetric label="体力" value={bestTrialRow?.stamina || 0} accent="stamina" />
+          <ResultMetric label="品質差" value={settlement?.qualityGain || 0} accent="quality" signed />
+          <ResultMetric label="収量差" value={settlement?.yieldGain || 0} accent="yield" signed />
+          <ResultMetric label="生育差" value={settlement?.growthGain || 0} accent="growth" signed />
           <ResultGradeCard rank={rank} label={settlement?.grade || '評価待ち'} />
         </div>
 
-        <div className="result-achievement">
-          <div className="achievement-icon" aria-hidden="true">
-            {achievement.icon}
-          </div>
-          <div className="achievement-copy">
-            <strong>{achievement.title}</strong>
-            <span>{achievement.description}</span>
-          </div>
-        </div>
-
-        <div className="result-insight">
-          <div className="insight-mark" aria-hidden="true">
-            考
-          </div>
-          <div className="insight-copy">
-            <strong>結果の考察</strong>
-            <p>{insight}</p>
-          </div>
+        <div className="result-summary-line">
+          <strong>{achievement.title}</strong>
+          <span>{insight}</span>
         </div>
       </section>
 
@@ -589,9 +616,9 @@ function ResultOverlay({
               </b>
             </div>
             <small>
-              {currentItem?.delay || 0}ターン後から効く
+              {currentItem?.delay || 0}週間後から効く
               <br />
-              {currentItem?.duration || 0}ターン継続
+              {currentItem?.duration || 0}週間継続
             </small>
           </div>
         </div>
@@ -621,12 +648,30 @@ function ResultOverlay({
   );
 }
 
-function ResultMetric({ label, value, accent }) {
-  const safeValue = Math.max(0, Math.min(120, Number(value) || 0));
+function ResultComparisonColumn({ title, row, metrics, highlight = false }) {
   return (
-    <div className="result-metric">
+    <div className={`result-comparison-column ${highlight ? 'highlight' : ''}`}>
+      <span>{title}</span>
+      {metrics.map((metric) => {
+        const value = Math.round(Number(row?.[metric.key]) || 0);
+        return (
+          <div key={metric.key} className="comparison-value">
+            <small>{metric.label}</small>
+            <strong>{value}</strong>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ResultMetric({ label, value, accent, signed = false }) {
+  const numericValue = Number(value) || 0;
+  const safeValue = Math.max(0, Math.min(120, signed ? Math.abs(numericValue) : numericValue));
+  return (
+    <div className={`result-metric ${signed && numericValue >= 0 ? 'positive' : signed ? 'negative' : ''}`}>
       <span>{label}</span>
-      <strong>{Math.round(safeValue)}</strong>
+      <strong>{signed ? formatDelta(numericValue) : Math.round(safeValue)}</strong>
       <div className="stat-track">
         <div className={`stat-fill ${accent || ''}`} style={{ width: `${Math.min(100, safeValue)}%` }} />
       </div>
@@ -652,9 +697,9 @@ function TreatmentTag({ treatment, plot }) {
     return <div className="treatment-tag muted-tag">この区画にはまだ資材を投入していません。</div>;
   }
   if (treatment.state === 'pending') {
-    return <div className="treatment-tag pending-tag">{treatment.name}: あと {treatment.pending} ターンで発効</div>;
+    return <div className="treatment-tag pending-tag">{treatment.name}: あと {treatment.pending} 週間で発効</div>;
   }
-  return <div className="treatment-tag active-tag">{treatment.name}: 効果中 残り {treatment.remaining} ターン</div>;
+  return <div className="treatment-tag active-tag">{treatment.name}: 効果中 残り {treatment.remaining} 週間</div>;
 }
 
 function visualStateLabel(state) {
@@ -731,9 +776,9 @@ function getResultAchievement(stage, bestTrialRow, settlement) {
 }
 
 function getResultInsight(stage, settlement, item) {
-  const turnText = settlement?.treatmentTurn ? `T${settlement.treatmentTurn}` : '未投入';
+  const turnText = settlement?.treatmentTurn ? `第${settlement.treatmentTurn}週` : '未投入';
   if (!settlement?.treatmentTurn) {
-    return `${item?.name || '資材'}を使わなかったため、無処理区との差は限定的でした。予報を見て、どのターンで仕込むかを決めることが重要です。`;
+    return `${item?.name || '資材'}を使わなかったため、無処理区との差は限定的でした。予報を見て、どの週で仕込むかを決めることが重要です。`;
   }
   if (stage.lessonType === 'preemptive') {
     return `${turnText} に ${item?.name || '資材'} を投入したことで、猛暑の前に効果が立ち上がりました。先回りした判断が品質維持につながっています。`;

@@ -13,7 +13,7 @@ import riceWither2Url from './assets/sui_wither_002.glb?url';
 import riceWither3Url from './assets/sui_wither_003.glb?url';
 import riceWither4Url from './assets/sui_wither_004.glb?url';
 
-const PLOT_POSITIONS = [-3.2, 0, 3.2];
+const PLOT_POSITIONS = [-1.9, 1.9];
 const PLOT_OUTLINE = [
   { x: -1.24, z: -1.18 },
   { x: 1.07, z: -1.32 },
@@ -90,8 +90,8 @@ export default function AgriThreeView({ stage, plots, selectedPlotId, onSelectPl
       scene.fog = new THREE.Fog(WEATHER_STYLE.clear.fog, 16, 36);
 
       const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 100);
-      camera.position.set(8.2, 8.4, 8.8);
-      camera.lookAt(0, 0, 0);
+      camera.position.set(4.25, 6.05, 3.85);
+      camera.lookAt(1.82, 0.22, 0.02);
 
       const renderer = new THREE.WebGLRenderer({ antialias: true });
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
@@ -112,10 +112,10 @@ export default function AgriThreeView({ stage, plots, selectedPlotId, onSelectPl
       controls.enableDamping = true;
       controls.dampingFactor = 0.08;
       controls.screenSpacePanning = false;
-      controls.minDistance = 6;
+      controls.minDistance = 4.6;
       controls.maxDistance = 18;
       controls.maxPolarAngle = Math.PI / 2.2;
-      controls.target.set(0, 0, 0);
+      controls.target.set(1.82, 0.22, 0.02);
 
       const hemiLight = new THREE.HemisphereLight(0xf3f6d4, 0x63705a, 1.6);
       scene.add(hemiLight);
@@ -359,42 +359,6 @@ function createGround(parent) {
   base.position.set(0, -0.12, 0);
   base.receiveShadow = true;
   parent.add(base);
-
-  const rimMaterial = new THREE.MeshStandardMaterial({ color: 0x5a6544, roughness: 0.92 });
-  [
-    { size: [11.7, 0.12, 0.16], position: [0, 0.04, -2.52] },
-    { size: [11.7, 0.12, 0.16], position: [0, 0.04, 2.24] },
-    { size: [0.16, 0.12, 4.6], position: [-4.82, 0.04, -0.14] },
-    { size: [0.16, 0.12, 4.6], position: [4.82, 0.04, -0.14] },
-  ].forEach(({ size, position }) => {
-    const rim = new THREE.Mesh(new THREE.BoxGeometry(...size), rimMaterial.clone());
-    rim.position.set(...position);
-    rim.receiveShadow = true;
-    parent.add(rim);
-  });
-
-  const pathTexture = createNoiseTexture({
-    base: '#af9260',
-    accent: '#8f774d',
-    line: '#c4ab79',
-    width: 192,
-    height: 192,
-    streaks: 64,
-    dotCount: 70,
-  });
-  pathTexture.wrapS = THREE.RepeatWrapping;
-  pathTexture.wrapT = THREE.RepeatWrapping;
-  pathTexture.repeat.set(6, 1.3);
-  const pathMaterial = new THREE.MeshStandardMaterial({ color: 0xa68d60, roughness: 1, map: pathTexture });
-  const pathZ = new THREE.Mesh(new THREE.BoxGeometry(11.2, 0.04, 0.28), pathMaterial);
-  pathZ.position.set(0, 0.03, 1.72);
-  parent.add(pathZ);
-
-  [-1.6, 1.6].forEach((offset) => {
-    const strip = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 4.9), pathMaterial.clone());
-    strip.position.set(offset, 0.03, -0.1);
-    parent.add(strip);
-  });
 
   [-4.4, -3.1, -1.7, 1.7, 3.1, 4.4].forEach((x, index) => {
     const tuft = new THREE.Mesh(
@@ -871,7 +835,7 @@ function addWaterSurface(group, crop, plot, index) {
 }
 
 function addPlotAccent(group, plot) {
-  const accentColor = plot.role === 'control' ? 0xb4b9ad : plot.name.endsWith('A') ? 0x7ec8ff : 0x7ad38a;
+  const accentColor = plot.role === 'control' ? 0xb4b9ad : 0x7ec8ff;
   const postMaterial = new THREE.MeshStandardMaterial({ color: accentColor, roughness: 0.7 });
   const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 0.44, 10), postMaterial);
   post.position.set(-0.92, 0.28, 1.02);

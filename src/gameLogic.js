@@ -22,7 +22,7 @@ export const ITEM_LIBRARY = {
     delay: 2,
     duration: 4,
     timingLabel: '事前処理型',
-    description: '猛暑の数ターン前に使うと強く効く。猛暑のあとに使っても遅い。',
+    description: '猛暑の数週間前に使うと強く効く。猛暑のあとに使っても遅い。',
   },
   frostGuard: {
     key: 'frostGuard',
@@ -54,7 +54,7 @@ export const STAGES = [
     primaryItemKey: 'heatShield',
     lessonType: 'preemptive',
     lessonSummary: '猛暑対策液は、猛暑の前に仕込めた区ほど差が出る。',
-    seasonLabels: ['7月上旬', '7月中旬', '7月下旬', '8月上旬', '8月中旬', '8月下旬', '9月上旬', '9月中旬', '9月下旬', '10月上旬'],
+    seasonLabels: ['7/1週', '7/8週', '7/15週', '7/22週', '7/29週', '8/5週', '8/12週', '8/19週', '8/26週', '9/2週'],
     timeline: [
       { forecast: 'warm', actual: 'warm' },
       { forecast: 'warning', actual: 'clear' },
@@ -77,7 +77,7 @@ export const STAGES = [
     primaryItemKey: 'frostGuard',
     lessonType: 'justInTime',
     lessonSummary: '低温・凍霜害対策液は、遅霜の直前に入れた区ほど守れる。',
-    seasonLabels: ['3月上旬', '3月中旬', '3月下旬', '4月上旬', '4月中旬', '4月下旬', '5月上旬', '5月中旬', '5月下旬', '6月上旬'],
+    seasonLabels: ['3/1週', '3/8週', '3/15週', '3/22週', '3/29週', '4/5週', '4/12週', '4/19週', '4/26週', '5/3週'],
     timeline: [
       { forecast: 'cloudy', actual: 'cloudy' },
       { forecast: 'warning', actual: 'frost' },
@@ -100,7 +100,7 @@ export const STAGES = [
     primaryItemKey: 'rootBooster',
     lessonType: 'recovery',
     lessonSummary: '根の回復促進剤は、冠水の直後に使うと最も差が出る。',
-    seasonLabels: ['6月上旬', '6月中旬', '6月下旬', '7月上旬', '7月中旬', '7月下旬', '8月上旬', '8月中旬', '8月下旬', '9月上旬'],
+    seasonLabels: ['6/1週', '6/8週', '6/15週', '6/22週', '6/29週', '7/6週', '7/13週', '7/20週', '7/27週', '8/3週'],
     timeline: [
       { forecast: 'rain', actual: 'rain' },
       { forecast: 'rain', actual: 'rain' },
@@ -147,8 +147,7 @@ export function getSelectedItem(state) {
 export function createPlots() {
   return [
     createPlot('plot-control', '無処理区', 'control', true),
-    createPlot('plot-a', '試験区A', 'trial', false),
-    createPlot('plot-b', '試験区B', 'trial', false),
+    createPlot('plot-a', '試験区', 'trial', false),
   ];
 }
 
@@ -190,14 +189,14 @@ export function getForecast(stage, turn, horizon = FORECAST_HORIZON) {
   const start = Math.max(0, (turn || 1) - 1);
   return timeline.slice(start, start + horizon).map((entry, offset) => ({
     turn: start + offset + 1,
-    periodLabel: seasonLabels[start + offset] || `T${start + offset + 1}`,
+    periodLabel: seasonLabels[start + offset] || `第${start + offset + 1}週`,
     forecast: entry?.forecast || 'clear',
   }));
 }
 
 export function getCurrentPeriodLabel(stage, turn) {
   const labels = Array.isArray(stage?.seasonLabels) ? stage.seasonLabels : [];
-  return labels[Math.max(0, (turn || 1) - 1)] || `T${turn || 1}`;
+  return labels[Math.max(0, (turn || 1) - 1)] || `第${turn || 1}週`;
 }
 
 export function applyTreatment(state, plotId) {
@@ -220,7 +219,7 @@ export function applyTreatment(state, plotId) {
     return appendLog(state, '無処理区には資材を投入できません。');
   }
   if (state.turnActionUsed) {
-    return appendLog(state, 'このターンはすでに処理を行いました。');
+    return appendLog(state, '今週はすでに処理を行いました。');
   }
   if (state.remainingUses <= 0) {
     return appendLog(state, 'このステージで使える処理回数を使い切りました。');
@@ -230,7 +229,7 @@ export function applyTreatment(state, plotId) {
   }
   const retreatmentCooldown = getRetreatmentCooldownRemaining(target, state.turn);
   if (retreatmentCooldown > 0) {
-    return appendLog(state, `${target.name} は再投入まであと ${retreatmentCooldown} ターン必要です。`);
+    return appendLog(state, `${target.name} は再投入まであと ${retreatmentCooldown} 週間必要です。`);
   }
   if (state.budget < item.cost) {
     return appendLog(state, `${item.name}を使う予算が足りません。`);
@@ -258,8 +257,8 @@ export function applyTreatment(state, plotId) {
 
   const timing =
     treatment.state === 'pending'
-      ? `発効まで${treatment.pending}ターン`
-      : `${item.timingLabel} / ${treatment.remaining}ターン有効`;
+      ? `発効まで${treatment.pending}週間`
+      : `${item.timingLabel} / ${treatment.remaining}週間有効`;
 
   return {
     ...state,
@@ -318,7 +317,7 @@ export function advanceTurn(state) {
   return {
     ...baseState,
     settlement,
-    logs: ['全ターンが終了。比較結果を決算にまとめます。', ...baseState.logs].slice(0, 80),
+    logs: [`全${state.maxTurns}週間が終了。比較結果を決算にまとめます。`, ...baseState.logs].slice(0, 80),
   };
 }
 
@@ -401,7 +400,7 @@ export function runAgriSurviveSelfCheck() {
   };
 
   let state = createInitialGameState('rice-summer');
-  assert(state.plots.length === 3, '初期化で3圃場ができる');
+  assert(state.plots.length === 2, '初期化で2圃場ができる');
   assert(state.plots[0]?.locked === true, '無処理区がロックされている');
 
   const untouched = applyTreatment(state, 'plot-control');
@@ -412,14 +411,14 @@ export function runAgriSurviveSelfCheck() {
   assert(state.budget === beforeBudget - ITEM_LIBRARY.heatShield.cost, '資材を使うと予算が減る');
   assert(state.plots[1].treatments[0]?.state === 'pending', '猛暑対策液はpendingになる');
 
-  assert(state.maxUses === 4, 'æŠ•å…¥å¯èƒ½æ•°ãŒ4ã«å¢—ãˆã‚‹');
-  assert(state.remainingUses === 3, 'åˆå›žæŠ•å…¥ã§æ®‹ã‚Šå›žæ•°ãŒ1æ¸›ã‚‹');
+  assert(state.maxUses === 4, '投入可能数が4になる');
+  assert(state.remainingUses === 3, '初回投入で残り回数が1減る');
 
   let cooldownState = advanceTurn(state);
-  assert(getRetreatmentCooldownRemaining(cooldownState.plots[1], cooldownState.turn) === 1, '1ã‚¿ãƒ¼ãƒ³å¾Œã¯ã¾ã å†æŠ•å…¥ã§ããªã„');
+  assert(getRetreatmentCooldownRemaining(cooldownState.plots[1], cooldownState.turn) === 1, '1週間後はまだ再投入できない');
   cooldownState = advanceTurn(cooldownState);
   const retried = applyTreatment(cooldownState, 'plot-a');
-  assert(retried.remainingUses === cooldownState.remainingUses - 1, '2ã‚¿ãƒ¼ãƒ³å¾Œã¯å†æŠ•å…¥ã§ãã‚‹');
+  assert(retried.remainingUses === cooldownState.remainingUses - 1, '2週間後は再投入できる');
 
   const frostNoGuard = calculateEventImpact({ treatments: [] }, 'frost');
   const frostWithGuard = calculateEventImpact({ treatments: [{ key: 'frostGuard', state: 'active', remaining: 1, pending: 0 }] }, 'frost');

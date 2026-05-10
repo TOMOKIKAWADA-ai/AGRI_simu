@@ -64,7 +64,7 @@ Output Directory: dist
   - 画面構成、ステージ選択、処理適用、結果表示などのUIを持つ。
 - `src/gameLogic.js`
   - シミュレーションの中核ロジック。
-  - ステージ、プロット、処理アイテム、ターン進行、自己チェックを持つ。
+  - ステージ、プロット、処理アイテム、週単位進行、自己チェックを持つ。
 - `src/AgriThreeView.jsx`
   - Three.js による3D表示。
 - `src/uiAssets.js`
