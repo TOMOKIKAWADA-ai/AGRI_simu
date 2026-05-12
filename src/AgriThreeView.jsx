@@ -12,6 +12,7 @@ import riceStage4Url from './assets/suitou_004.glb?url';
 import riceWither2Url from './assets/sui_wither_002.glb?url';
 import riceWither3Url from './assets/sui_wither_003.glb?url';
 import riceWither4Url from './assets/sui_wither_004.glb?url';
+import treeModelUrl from './assets/tree.glb?url';
 
 const PLOT_POSITIONS = [-1.9, 1.9];
 const PLOT_OUTLINE = [
@@ -40,15 +41,15 @@ const PLOT_WATER_OUTLINE = [
 ];
 
 const WEATHER_STYLE = {
-  heatwave: { sky: 0xffd08a, fog: 0xffdcad, hemi: 0xfff1c7, sun: 0xffb24d, intensity: 2.25, rain: false },
-  frost: { sky: 0xdcefff, fog: 0xe8f5ff, hemi: 0xdff6ff, sun: 0xa9d2ff, intensity: 1.25, rain: false },
-  flood: { sky: 0x8fa4ad, fog: 0xb0bec5, hemi: 0xd4e4ed, sun: 0xa8b5bc, intensity: 0.9, rain: true },
-  rain: { sky: 0xa8b7c0, fog: 0xc4ccd1, hemi: 0xd9e6ec, sun: 0xb3bdc3, intensity: 1.0, rain: true },
-  drought: { sky: 0xd8b773, fog: 0xe0c98f, hemi: 0xf3ddaa, sun: 0xe8aa52, intensity: 1.6, rain: false },
-  warm: { sky: 0xbfe5ff, fog: 0xe7f5ff, hemi: 0xf5f4d6, sun: 0xffd16d, intensity: 1.55, rain: false },
-  warning: { sky: 0xc9d6c9, fog: 0xd9e2d4, hemi: 0xeef3de, sun: 0xd2cf94, intensity: 1.2, rain: false },
-  cloudy: { sky: 0xb8c2c5, fog: 0xd5dcdf, hemi: 0xe4ecee, sun: 0xc5cfd3, intensity: 1.0, rain: false },
-  clear: { sky: 0xaad9ff, fog: 0xdff3ff, hemi: 0xf3f6d4, sun: 0xffd27a, intensity: 1.45, rain: false },
+  heatwave: { sky: 0xffd08a, fog: 0xffdcad, hemi: 0xfff1c7, sun: 0xffb24d, intensity: 2.38, rain: false },
+  frost: { sky: 0xdcefff, fog: 0xe8f5ff, hemi: 0xdff6ff, sun: 0xa9d2ff, intensity: 1.42, rain: false },
+  flood: { sky: 0x8fa4ad, fog: 0xb0bec5, hemi: 0xd4e4ed, sun: 0xa8b5bc, intensity: 1.08, rain: true },
+  rain: { sky: 0xa8b7c0, fog: 0xc4ccd1, hemi: 0xd9e6ec, sun: 0xb3bdc3, intensity: 1.18, rain: true },
+  drought: { sky: 0xd8b773, fog: 0xe0c98f, hemi: 0xf3ddaa, sun: 0xe8aa52, intensity: 1.78, rain: false },
+  warm: { sky: 0xbfe5ff, fog: 0xe7f5ff, hemi: 0xf5f4d6, sun: 0xffd16d, intensity: 1.72, rain: false },
+  warning: { sky: 0xc9d6c9, fog: 0xd9e2d4, hemi: 0xeef3de, sun: 0xd2cf94, intensity: 1.36, rain: false },
+  cloudy: { sky: 0xb8c2c5, fog: 0xd5dcdf, hemi: 0xe4ecee, sun: 0xc5cfd3, intensity: 1.18, rain: false },
+  clear: { sky: 0xaad9ff, fog: 0xdff3ff, hemi: 0xf3f6d4, sun: 0xffd27a, intensity: 1.64, rain: false },
 };
 
 const RICE_MODEL_SOURCES = [
@@ -98,7 +99,7 @@ export default function AgriThreeView({ stage, plots, selectedPlotId, onSelectPl
       renderer.setClearColor(WEATHER_STYLE.clear.sky, 1);
       renderer.outputColorSpace = THREE.SRGBColorSpace;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.04;
+      renderer.toneMappingExposure = 1.18;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       container.appendChild(renderer.domElement);
@@ -117,10 +118,10 @@ export default function AgriThreeView({ stage, plots, selectedPlotId, onSelectPl
       controls.maxPolarAngle = Math.PI / 2.2;
       controls.target.set(1.82, 0.22, 0.02);
 
-      const hemiLight = new THREE.HemisphereLight(0xf3f6d4, 0x63705a, 1.6);
+      const hemiLight = new THREE.HemisphereLight(0xf3f6d4, 0x63705a, 1.85);
       scene.add(hemiLight);
 
-      const sunLight = new THREE.DirectionalLight(0xffd27a, 1.45);
+      const sunLight = new THREE.DirectionalLight(0xffd27a, 1.64);
       sunLight.position.set(9, 9, 4);
       sunLight.castShadow = true;
       sunLight.shadow.mapSize.set(1024, 1024);
@@ -129,6 +130,7 @@ export default function AgriThreeView({ stage, plots, selectedPlotId, onSelectPl
       const worldGroup = new THREE.Group();
       scene.add(worldGroup);
       createGround(worldGroup);
+      const backgroundTreeGroup = createBackgroundTreeGroup(worldGroup);
 
       const environment = createEnvironment(scene, worldGroup, stage, renderer.capabilities.getMaxAnisotropy?.() || 1);
 
@@ -172,6 +174,7 @@ export default function AgriThreeView({ stage, plots, selectedPlotId, onSelectPl
         latestStage: stage,
         latestPlots: plots,
         riceModelTemplates: {},
+        backgroundTreeGroup,
         sprayBursts: [],
         plotSnapshots: createPlotSnapshots(plots),
         stageId: stage?.id || '',
@@ -242,6 +245,7 @@ export default function AgriThreeView({ stage, plots, selectedPlotId, onSelectPl
         rebuildPlots(current, current.latestStage, current.latestPlots);
         updateSelectionFrame(current, selectedRef.current);
       });
+      loadBackgroundTrees(current, () => disposed || stateRef.current !== current);
       setError('');
     } catch (err) {
       setError(err instanceof Error ? err.message : '3D表示の初期化に失敗しました。');
@@ -360,16 +364,6 @@ function createGround(parent) {
   base.receiveShadow = true;
   parent.add(base);
 
-  [-4.4, -3.1, -1.7, 1.7, 3.1, 4.4].forEach((x, index) => {
-    const tuft = new THREE.Mesh(
-      new THREE.ConeGeometry(0.18 + (index % 2) * 0.04, 0.34 + (index % 3) * 0.06, 6),
-      new THREE.MeshStandardMaterial({ color: 0x5d8749, roughness: 0.9 }),
-    );
-    tuft.position.set(x, 0.14, 2.65 + (index % 2) * 0.18);
-    tuft.castShadow = true;
-    parent.add(tuft);
-  });
-
   [-5.6, -2.4, 2.2, 5.4].forEach((x, index) => {
     const rock = new THREE.Mesh(
       new THREE.DodecahedronGeometry(0.12 + (index % 2) * 0.04, 0),
@@ -380,6 +374,13 @@ function createGround(parent) {
     rock.castShadow = true;
     parent.add(rock);
   });
+}
+
+function createBackgroundTreeGroup(parent) {
+  const group = new THREE.Group();
+  group.name = 'background-trees';
+  parent.add(group);
+  return group;
 }
 
 function createSelectionFrame() {
@@ -456,6 +457,80 @@ function loadRiceModels(current, shouldCancel, onReady) {
       finish,
     );
   });
+}
+
+function loadBackgroundTrees(current, shouldCancel) {
+  if (!current?.backgroundTreeGroup) return;
+  const loader = new GLTFLoader();
+  loader.load(
+    treeModelUrl,
+    (gltf) => {
+      if (shouldCancel?.()) {
+        disposeObject(gltf.scene);
+        return;
+      }
+      clearGroup(current.backgroundTreeGroup);
+      addBackgroundTrees(current.backgroundTreeGroup, gltf.scene);
+      disposeObject(gltf.scene);
+    },
+    undefined,
+    () => {
+      clearGroup(current.backgroundTreeGroup);
+    },
+  );
+}
+
+function addBackgroundTrees(parent, source) {
+  const placements = [
+    { x: -5.15, z: 2.42, height: 1.34, rotation: -0.26 },
+    { x: -4.15, z: 2.12, height: 1.08, rotation: 0.18 },
+    { x: -3.15, z: 2.58, height: 1.22, rotation: -0.1 },
+    { x: 4.65, z: 2.44, height: 1.18, rotation: 0.32 },
+    { x: -5.38, z: -2.42, height: 0.96, rotation: 0.12 },
+    { x: 5.28, z: -2.24, height: 1.04, rotation: -0.2 },
+  ];
+
+  placements.forEach((placement) => {
+    const tree = createTreeInstance(source, placement);
+    parent.add(tree);
+  });
+}
+
+function createTreeInstance(source, placement) {
+  const tree = cloneTreeModel(source);
+  tree.rotation.y = placement.rotation || 0;
+
+  const initialBox = new THREE.Box3().setFromObject(tree);
+  const initialSize = initialBox.getSize(new THREE.Vector3());
+  const scale = (placement.height || 1) / Math.max(0.001, initialSize.y || 1);
+  tree.scale.setScalar(scale);
+
+  const scaledBox = new THREE.Box3().setFromObject(tree);
+  const center = scaledBox.getCenter(new THREE.Vector3());
+  tree.position.set(
+    placement.x - center.x,
+    -0.02 - scaledBox.min.y,
+    placement.z - center.z,
+  );
+  return tree;
+}
+
+function cloneTreeModel(source) {
+  const clone = source.clone(true);
+  clone.traverse?.((child) => {
+    if (!child.isMesh) return;
+    child.castShadow = true;
+    child.receiveShadow = true;
+    if (child.geometry) {
+      child.geometry = child.geometry.clone();
+    }
+    if (Array.isArray(child.material)) {
+      child.material = child.material.map((material) => material.clone());
+    } else if (child.material) {
+      child.material = child.material.clone();
+    }
+  });
+  return clone;
 }
 
 function rebuildPlots(current, stage, plots) {
